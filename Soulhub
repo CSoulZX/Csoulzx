@@ -14,31 +14,30 @@ _G.FlyHeight = 100
 
 local lastNotifyUnit = 0
 local lastNotifyMachine = 0
+-- SpawnMachines telah dihapus dari daftar ini
 local machineList = {"Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}
 
 local Window = Rayfield:CreateWindow({
-   Name = "SPEED HUB V4 | AUTO YES & FIX ALL",
+   Name = "SPEED HUB V4 | ULTIMATE AUTO YES",
    LoadingTitle = "Speed Hub Loading...",
-   LoadingSubtitle = "Locked Axis Fly System",
+   LoadingSubtitle = "Universal UI Bypass Active",
    ConfigurationSaving = {Enabled = false},
 })
 
 -- ==========================================
--- INSTANT PROMPT (ALWAYS ACTIVE)
+-- INSTANT PROMPT
 -- ==========================================
 task.spawn(function()
     while true do
         for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") then
-                v.HoldDuration = 0
-            end
+            if v:IsA("ProximityPrompt") then v.HoldDuration = 0 end
         end
         task.wait(1)
     end
 end)
 
 -- ==========================================
--- AUTO CLICK "YES" POP-UP (BACKGROUND TASK)
+-- FEATURE: SUPER AUTO YES (FITUR YANG SUDAH BERHASIL)
 -- ==========================================
 task.spawn(function()
     while true do
@@ -47,216 +46,141 @@ task.spawn(function()
             local pGui = player:FindFirstChild("PlayerGui")
             if pGui then
                 for _, v in pairs(pGui:GetDescendants()) do
-                    -- Mencari tombol UI TextButton yang bertuliskan "Yes" dan sedang tampil di layar
-                    if v:IsA("TextButton") and v.Text:lower() == "yes" and v.Visible then
-                        local isVisible = true
-                        local parent = v.Parent
-                        -- Verifikasi bahwa seluruh frame UI-nya tidak tersembunyi
-                        while parent and parent:IsA("GuiObject") do
-                            if not parent.Visible then isVisible = false break end
-                            parent = parent.Parent
+                    local isYes = false
+                    if v:IsA("TextButton") or v:IsA("ImageButton") then
+                        if string.find(v.Name:lower(), "yes") or (v:IsA("TextButton") and string.find(v.Text:lower(), "yes")) then
+                            isYes = true
                         end
-                        
-                        if isVisible then
+                    end
+
+                    if isYes and v.Visible and v.AbsoluteSize.X > 0 then
+                        local isActuallyVisible = true
+                        local ancestor = v.Parent
+                        while ancestor and ancestor:IsA("GuiObject") do
+                            if not ancestor.Visible then isActuallyVisible = false break end
+                            ancestor = ancestor.Parent
+                        end
+
+                        if isActuallyVisible then
                             pcall(function()
-                                -- Eksekusi klik GUI yang kompatibel dengan berbagai Executor
-                                if firesignal then
-                                    firesignal(v.MouseButton1Click)
-                                elseif getconnections then
-                                    for _, conn in pairs(getconnections(v.MouseButton1Click)) do
-                                        conn:Fire()
-                                    end
+                                if getconnections then
+                                    for _, conn in pairs(getconnections(v.MouseButton1Click)) do conn:Fire() end
+                                    for _, conn in pairs(getconnections(v.Activated)) do conn:Fire() end
                                 end
+                                
+                                local cx = v.AbsolutePosition.X + (v.AbsoluteSize.X / 2)
+                                local cy = v.AbsolutePosition.Y + (v.AbsoluteSize.Y / 2)
+                                VirtualInputManager:SendMouseButtonEvent(cx, cy + 36, 0, true, game, 1)
+                                task.wait(0.01)
+                                VirtualInputManager:SendMouseButtonEvent(cx, cy + 36, 0, false, game, 1)
+                                
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                                task.wait(0.01)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
                             end)
-                            task.wait(0.5) -- Jeda setelah klik agar tidak spam berlebihan
+                            task.wait(1.5)
                         end
                     end
                 end
             end
         end
-        task.wait(0.5)
+        task.wait(0.3)
     end
 end)
 
 -- ==========================================
--- SCALE MATCH LOGIC
+-- LOGIKA PENDUKUNG
 -- ==========================================
 local function IsScaleMatch(sAttr)
     if _G.SelectedScales["All"] then return true end
-    if _G.SelectedScales["Lil Baby"] and (sAttr >= 0.1 and sAttr <= 0.24) then return true end
-    if _G.SelectedScales["Baby"] and (sAttr >= 0.25 and sAttr <= 0.34) then return true end
-    if _G.SelectedScales["Mini"] and (sAttr >= 0.35 and sAttr <= 0.74) then return true end
-    if _G.SelectedScales["Normal"] and (sAttr >= 0.75 and sAttr <= 1.2) then return true end
-    if _G.SelectedScales["Big"] and (sAttr >= 1.3 and sAttr <= 1.77) then return true end
-    if _G.SelectedScales["Colossal"] and (sAttr >= 1.78 and sAttr <= 3.0) then return true end
+    local s = _G.SelectedScales
+    if s["Lil Baby"] and (sAttr >= 0.1 and sAttr <= 0.24) then return true end
+    if s["Baby"] and (sAttr >= 0.25 and sAttr <= 0.34) then return true end
+    if s["Mini"] and (sAttr >= 0.35 and sAttr <= 0.74) then return true end
+    if s["Normal"] and (sAttr >= 0.75 and sAttr <= 1.2) then return true end
+    if s["Big"] and (sAttr >= 1.3 and sAttr <= 1.77) then return true end
+    if s["Colossal"] and (sAttr >= 1.78 and sAttr <= 3.0) then return true end
     return false
 end
 
--- ==========================================
--- DUAL-SCAN UNIT (BACKPACK + EQUIPPED)
--- ==========================================
 local function SuperScanUnit()
-    local player = game.Players.LocalPlayer
-    local char = player.Character
-    local backpack = player:FindFirstChild("Backpack")
-    
+    local char = game.Players.LocalPlayer.Character
+    local backpack = game.Players.LocalPlayer:FindFirstChild("Backpack")
     local function IsValid(item)
         if item and item:IsA("Tool") then
             local bName = tostring(item:GetAttribute("BrainrotName") or ""):lower()
             local sAttr = tonumber(item:GetAttribute("Scale")) or 0
-            local matchName = (_G.SelectedUnitName == "All Units") or string.find(bName, _G.SelectedUnitName:lower())
-            if matchName and IsScaleMatch(sAttr) then return true end
+            return (_G.SelectedUnitName == "All Units" or string.find(bName, _G.SelectedUnitName:lower())) and IsScaleMatch(sAttr)
         end
         return false
     end
-
     if char and IsValid(char:FindFirstChildOfClass("Tool")) then return char:FindFirstChildOfClass("Tool") end
-    if backpack then
-        for _, item in pairs(backpack:GetChildren()) do
-            if IsValid(item) then return item end
+    if backpack then for _, i in pairs(backpack:GetChildren()) do if IsValid(i) then return i end end end
+    return nil
+end
+
+local function GetUniversalCount(m)
+    if not m then return nil end
+    for _, v in pairs(m:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            local t = (v.ActionText or "") .. (v.ObjectText or "")
+            local c, max = t:match("(%d+)/(%d+)")
+            if c then return tonumber(c), tonumber(max) end
         end
     end
     return nil
 end
 
 -- ==========================================
--- UNIVERSAL DEPOSIT SCANNER
--- ==========================================
-local function GetUniversalCount(machineObj)
-    if not machineObj then return nil, nil end
-    for _, v in pairs(machineObj:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            local text = (v.ActionText or "") .. (v.ObjectText or "")
-            local current, max = text:match("(%d+)/(%d+)")
-            if current and max then
-                return tonumber(current), tonumber(max)
-            end
-        end
-    end
-    return nil, nil
-end
-
--- ==========================================
--- LOGIKA FLY TO (LOCKED Y-AXIS)
+-- MAIN AUTO FUSE LOOP
 -- ==========================================
 local function StartAutoFuse()
     while _G.AutoFuse do
-        local player = game.Players.LocalPlayer
-        local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then task.wait(0.1) continue end
+        local char = game.Players.LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then task.wait(1) continue end
 
-        local hrp = char.HumanoidRootPart
         local activeMachineName = nil
-        
-        -- Cek jika "All" dipilih atau mesin spesifik (DIPERBAIKI AGAR TIDAK STUCK)
         if _G.SelectedMachines["All"] then
             for _, name in pairs(machineList) do
                 local mObj = workspace:FindFirstChild(name, true)
-                if mObj then
-                    -- Pastikan mesin valid dan bisa diinteraksi (punya hitungan X/Y) agar tidak stuck
-                    local c, m = GetUniversalCount(mObj)
-                    if c ~= nil then
-                        activeMachineName = name
-                        break
-                    end
-                end
+                if mObj and GetUniversalCount(mObj) then activeMachineName = name break end
             end
         else
             for name, sel in pairs(_G.SelectedMachines) do if sel then activeMachineName = name break end end
         end
 
-        if not activeMachineName then 
-            task.wait(1) 
-            continue 
-        end
+        if not activeMachineName then task.wait(1) continue end
 
         local machineObj = workspace:FindFirstChild(activeMachineName, true)
-        local targetPos = nil
+        -- Logika khusus SpawnMachines sudah dihapus dari sini
+        local targetPos = machineObj and (machineObj:IsA("BasePart") and machineObj.Position or machineObj:FindFirstChildWhichIsA("BasePart", true).Position)
 
-        if machineObj then
-            local part = machineObj:IsA("BasePart") and machineObj or machineObj:FindFirstChildWhichIsA("BasePart", true)
-            if part then targetPos = part.Position end
-        end
-
-        -- NOTIFIKASI MESIN TIDAK DITEMUKAN
-        if not targetPos then 
-            if tick() - lastNotifyMachine > 10 then
-                Rayfield:Notify({
-                   Title = "Mesin Tidak Ada",
-                   Content = "Model mesin '" .. tostring(activeMachineName) .. "' tidak ditemukan!",
-                   Duration = 5,
-                   Image = 4483345998,
-                })
-                lastNotifyMachine = tick()
-            end
-            task.wait(1) 
-            continue 
-        end
+        if not targetPos then task.wait(1) continue end
 
         local count, maxCount = GetUniversalCount(machineObj)
         if count == nil then task.wait(0.1) continue end
 
-        -- HITUNG JARAK HORIZONTAL
-        local distHorizontal = Vector2.new(hrp.Position.X - targetPos.X, hrp.Position.Z - targetPos.Z).Magnitude
-        
-        if distHorizontal > 5 then
-            -- 1. FLY UP
-            local flyUp = TweenService:Create(hrp, TweenInfo.new(1, Enum.EasingStyle.Sine), {
-                CFrame = CFrame.new(hrp.Position.X, targetPos.Y + _G.FlyHeight, hrp.Position.Z)
-            })
-            flyUp:Play()
-            flyUp.Completed:Wait()
-
-            -- 2. FLY TO
-            local flyTo = TweenService:Create(hrp, TweenInfo.new(distHorizontal/_G.TweenSpeed, Enum.EasingStyle.Linear), {
-                CFrame = CFrame.new(targetPos.X, targetPos.Y + _G.FlyHeight, targetPos.Z)
-            })
-            flyTo:Play()
-            flyTo.Completed:Wait()
-
-            -- 3. LANDING
-            local landing = TweenService:Create(hrp, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {
-                CFrame = CFrame.new(targetPos.X, targetPos.Y + 3, targetPos.Z)
-            })
-            landing:Play()
-            landing.Completed:Wait()
+        local distH = Vector2.new(hrp.Position.X - targetPos.X, hrp.Position.Z - targetPos.Z).Magnitude
+        if distH > 5 then
+            TweenService:Create(hrp, TweenInfo.new(1), {CFrame = CFrame.new(hrp.Position.X, targetPos.Y + _G.FlyHeight, hrp.Position.Z)}):Play()
+            task.wait(1.1)
+            TweenService:Create(hrp, TweenInfo.new(distH/_G.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos.X, targetPos.Y + _G.FlyHeight, targetPos.Z)}):Play()
+            task.wait((distH/_G.TweenSpeed) + 0.2)
+            TweenService:Create(hrp, TweenInfo.new(0.8), {CFrame = CFrame.new(targetPos.X, targetPos.Y + 3, targetPos.Z)}):Play()
+            task.wait(0.9)
         end
 
-        -- LOGIKA DEPOSIT BRAINROT
         if count == 0 then
             local tool = SuperScanUnit()
-            if tool then
-                if tool.Parent ~= char then tool.Parent = char end
-                task.wait(0.2)
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.05)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            else
-                if tick() - lastNotifyUnit > 10 then
-                    Rayfield:Notify({
-                       Title = "Unit Tidak Ditemukan",
-                       Content = "Brainrot tidak ada di tas!",
-                       Duration = 5,
-                       Image = 4483345998,
-                    })
-                    lastNotifyUnit = tick()
-                end
-            end
+            if tool then tool.Parent = char task.wait(0.2) VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) task.wait(0.05) VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end
         elseif count < (maxCount - 1) then
             if char:FindFirstChildOfClass("Tool") then char.Humanoid:UnequipTools() end
-            task.wait(0.1)
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-            task.wait(0.05)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            task.wait(3) 
+            task.wait(0.1) VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) task.wait(0.05) VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) task.wait(3) 
         elseif count == (maxCount - 1) then
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-            task.wait(0.05)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-            task.wait(2.5) 
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game) task.wait(0.05) VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game) task.wait(2.5) 
             if char:FindFirstChildOfClass("Tool") then char.Humanoid:UnequipTools() end
         end
-        
         task.wait(1) 
     end
 end
@@ -265,35 +189,9 @@ end
 -- UI SETUP
 -- ==========================================
 local MainTab = Window:CreateTab("Auto Fuse", 4483345998)
-
-MainTab:CreateDropdown({
-   Name = "Pilih Unit", 
-   Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "All Units"}, 
-   CurrentOption = {"Cupitron Consoletron"},
-   Callback = function(Option) _G.SelectedUnitName = Option[1] end,
-})
-
-MainTab:CreateDropdown({
-   Name = "Pilih Scale (Multi)", Options = {"All", "Lil Baby", "Baby", "Mini", "Normal", "Big", "Colossal"}, MultipleOptions = true,
-   Callback = function(Options) _G.SelectedScales = {} for _, v in pairs(Options) do _G.SelectedScales[v] = true end end,
-})
-
-MainTab:CreateDropdown({
-   Name = "Pilih Mesin", 
-   Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}, 
-   MultipleOptions = true,
-   Callback = function(Options) _G.SelectedMachines = {} for _, v in pairs(Options) do _G.SelectedMachines[v] = true end end,
-})
-
-MainTab:CreateInput({
-   Name = "Fly Speed", PlaceholderText = "150",
-   Callback = function(Text) _G.TweenSpeed = tonumber(Text) or 150 end,
-})
-
-MainTab:CreateToggle({
-   Name = "Start Auto Fuse", CurrentValue = false,
-   Callback = function(Value) 
-       _G.AutoFuse = Value 
-       if Value then task.spawn(StartAutoFuse) end 
-   end,
-})
+MainTab:CreateDropdown({Name = "Pilih Unit", Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "All Units"}, CurrentOption = {"Cupitron Consoletron"}, Callback = function(o) _G.SelectedUnitName = o[1] end})
+MainTab:CreateDropdown({Name = "Pilih Scale (Multi)", Options = {"All", "Lil Baby", "Baby", "Mini", "Normal", "Big", "Colossal"}, MultipleOptions = true, Callback = function(o) _G.SelectedScales = {} for _, v in pairs(o) do _G.SelectedScales[v] = true end end})
+-- SpawnMachines dihapus dari opsi dropdown di bawah ini
+MainTab:CreateDropdown({Name = "Pilih Mesin", Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}, MultipleOptions = true, Callback = function(o) _G.SelectedMachines = {} for _, v in pairs(o) do _G.SelectedMachines[v] = true end end})
+MainTab:CreateInput({Name = "Fly Speed", PlaceholderText = "150", Callback = function(t) _G.TweenSpeed = tonumber(t) or 150 end})
+MainTab:CreateToggle({Name = "Start Auto Fuse", CurrentValue = false, Callback = function(v) _G.AutoFuse = v if v then task.spawn(StartAutoFuse) end end})
