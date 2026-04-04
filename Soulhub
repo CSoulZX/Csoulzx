@@ -1,0 +1,211 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
+
+-- ==========================================
+-- GLOBAL VARIABLES
+-- ==========================================
+_G.AutoFuse = false
+_G.SelectedUnitName = "Cupitron Consoletron"
+_G.SelectedScales = {} 
+_G.SelectedMachines = {} 
+_G.TweenSpeed = 150 
+_G.FlyHeight = 100 
+
+local Window = Rayfield:CreateWindow({
+   Name = "SPEED HUB V4 | MASTODONTICO UPDATE",
+   LoadingTitle = "Speed Hub Loading...",
+   LoadingSubtitle = "Locked Axis Fly System",
+   ConfigurationSaving = {Enabled = false},
+})
+
+-- ==========================================
+-- INSTANT PROMPT (ALWAYS ACTIVE)
+-- ==========================================
+task.spawn(function()
+    while true do
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ProximityPrompt") then
+                v.HoldDuration = 0
+            end
+        end
+        task.wait(1)
+    end
+end)
+
+-- ==========================================
+-- SCALE MATCH LOGIC
+-- ==========================================
+local function IsScaleMatch(sAttr)
+    if _G.SelectedScales["All"] then return true end
+    if _G.SelectedScales["Lil Baby"] and (sAttr >= 0.1 and sAttr <= 0.24) then return true end
+    if _G.SelectedScales["Baby"] and (sAttr >= 0.25 and sAttr <= 0.34) then return true end
+    if _G.SelectedScales["Mini"] and (sAttr >= 0.35 and sAttr <= 0.74) then return true end
+    if _G.SelectedScales["Normal"] and (sAttr >= 0.75 and sAttr <= 1.2) then return true end
+    if _G.SelectedScales["Big"] and (sAttr >= 1.3 and sAttr <= 1.77) then return true end
+    if _G.SelectedScales["Colossal"] and (sAttr >= 1.78 and sAttr <= 3.0) then return true end
+    return false
+end
+
+-- ==========================================
+-- DUAL-SCAN UNIT (BACKPACK + EQUIPPED)
+-- ==========================================
+local function SuperScanUnit()
+    local player = game.Players.LocalPlayer
+    local char = player.Character
+    local backpack = player:FindFirstChild("Backpack")
+    
+    local function IsValid(item)
+        if item and item:IsA("Tool") then
+            local bName = tostring(item:GetAttribute("BrainrotName") or ""):lower()
+            local sAttr = tonumber(item:GetAttribute("Scale")) or 0
+            local matchName = (_G.SelectedUnitName == "All Units") or string.find(bName, _G.SelectedUnitName:lower())
+            if matchName and IsScaleMatch(sAttr) then return true end
+        end
+        return false
+    end
+
+    if char and IsValid(char:FindFirstChildOfClass("Tool")) then return char:FindFirstChildOfClass("Tool") end
+    if backpack then
+        for _, item in pairs(backpack:GetChildren()) do
+            if IsValid(item) then return item end
+        end
+    end
+    return nil
+end
+
+-- ==========================================
+-- UNIVERSAL DEPOSIT SCANNER
+-- ==========================================
+local function GetUniversalCount(machineObj)
+    if not machineObj then return nil, nil end
+    for _, v in pairs(machineObj:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            local text = (v.ActionText or "") .. (v.ObjectText or "")
+            local current, max = text:match("(%d+)/(%d+)")
+            if current and max then
+                return tonumber(current), tonumber(max)
+            end
+        end
+    end
+    return nil, nil
+end
+
+-- ==========================================
+-- LOGIKA FLY TO (LOCKED Y-AXIS)
+-- ==========================================
+local function StartAutoFuse()
+    while _G.AutoFuse do
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then task.wait(0.1) continue end
+
+        local hrp = char.HumanoidRootPart
+        local activeMachineName = nil
+        for name, sel in pairs(_G.SelectedMachines) do if sel then activeMachineName = name break end end
+        if not activeMachineName then task.wait(0.5) continue end
+
+        local machineObj = workspace:FindFirstChild(activeMachineName, true)
+        local targetPos = nil
+
+        if activeMachineName == "SpawnMachines" then
+            targetPos = Vector3.new(143.5, 5, 139.9)
+        elseif machineObj then
+            local part = machineObj:IsA("BasePart") and machineObj or machineObj:FindFirstChildWhichIsA("BasePart", true)
+            if part then targetPos = part.Position end
+        end
+
+        if not targetPos then task.wait(0.5) continue end
+        local count, maxCount = GetUniversalCount(machineObj)
+        if count == nil then task.wait(0.1) continue end
+
+        -- HITUNG JARAK HORIZONTAL
+        local distHorizontal = Vector2.new(hrp.Position.X - targetPos.X, hrp.Position.Z - targetPos.Z).Magnitude
+        
+        if distHorizontal > 5 then
+            -- 1. FLY UP (Naik ke ketinggian 100 secara stabil)
+            local flyUp = TweenService:Create(hrp, TweenInfo.new(1, Enum.EasingStyle.Sine), {
+                CFrame = CFrame.new(hrp.Position.X, targetPos.Y + _G.FlyHeight, hrp.Position.Z)
+            })
+            flyUp:Play()
+            flyUp.Completed:Wait()
+
+            -- 2. FLY TO (Meluncur Horizontal dengan Y yang Terkunci/Locked)
+            local flyTo = TweenService:Create(hrp, TweenInfo.new(distHorizontal/_G.TweenSpeed, Enum.EasingStyle.Linear), {
+                CFrame = CFrame.new(targetPos.X, targetPos.Y + _G.FlyHeight, targetPos.Z)
+            })
+            flyTo:Play()
+            flyTo.Completed:Wait()
+
+            -- 3. LANDING (Turun ke titik mesin)
+            local landing = TweenService:Create(hrp, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {
+                CFrame = CFrame.new(targetPos.X, targetPos.Y + 3, targetPos.Z)
+            })
+            landing:Play()
+            landing.Completed:Wait()
+        end
+
+        -- LOGIKA DEPOSIT BRAINROT (SMART DELAY)
+        if count == 0 then
+            local tool = SuperScanUnit()
+            if tool then
+                if tool.Parent ~= char then tool.Parent = char end
+                task.wait(0.2)
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+            end
+        elseif count < (maxCount - 1) then
+            if char:FindFirstChildOfClass("Tool") then char.Humanoid:UnequipTools() end
+            task.wait(0.1)
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            task.wait(0.05)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+            task.wait(3) 
+        elseif count == (maxCount - 1) then
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+            task.wait(0.05)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+            task.wait(2.5) 
+            if char:FindFirstChildOfClass("Tool") then char.Humanoid:UnequipTools() end
+        end
+        task.wait(0.1) 
+    end
+end
+
+-- ==========================================
+-- UI SETUP
+-- ==========================================
+local MainTab = Window:CreateTab("Auto Fuse", 4483345998)
+
+MainTab:CreateDropdown({
+   Name = "Pilih Unit", 
+   Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "All Units"}, 
+   CurrentOption = {"Cupitron Consoletron"},
+   Callback = function(Option) _G.SelectedUnitName = Option[1] end,
+})
+
+MainTab:CreateDropdown({
+   Name = "Pilih Scale (Multi)", Options = {"All", "Lil Baby", "Baby", "Mini", "Normal", "Big", "Colossal"}, MultipleOptions = true,
+   Callback = function(Options) _G.SelectedScales = {} for _, v in pairs(Options) do _G.SelectedScales[v] = true end end,
+})
+
+MainTab:CreateDropdown({
+   Name = "Pilih Mesin", 
+   Options = {"SpawnMachines", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}, 
+   MultipleOptions = true,
+   Callback = function(Options) _G.SelectedMachines = {} for _, v in pairs(Options) do _G.SelectedMachines[v] = true end end,
+})
+
+MainTab:CreateInput({
+   Name = "Fly Speed", PlaceholderText = "150",
+   Callback = function(Text) _G.TweenSpeed = tonumber(Text) or 150 end,
+})
+
+MainTab:CreateToggle({
+   Name = "Start Auto Fuse", CurrentValue = false,
+   Callback = function(Value) 
+       _G.AutoFuse = Value 
+       if Value then task.spawn(StartAutoFuse) end 
+   end,
+})
