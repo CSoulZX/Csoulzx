@@ -17,7 +17,7 @@ local lastNotifyMachine = 0
 local machineList = {"Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}
 
 local Window = Rayfield:CreateWindow({
-   Name = "SPEED HUB V4 | ALL-MACHINE UPDATE",
+   Name = "SPEED HUB V4 | AUTO YES & FIX ALL",
    LoadingTitle = "Speed Hub Loading...",
    LoadingSubtitle = "Locked Axis Fly System",
    ConfigurationSaving = {Enabled = false},
@@ -34,6 +34,47 @@ task.spawn(function()
             end
         end
         task.wait(1)
+    end
+end)
+
+-- ==========================================
+-- AUTO CLICK "YES" POP-UP (BACKGROUND TASK)
+-- ==========================================
+task.spawn(function()
+    while true do
+        if _G.AutoFuse then
+            local player = game.Players.LocalPlayer
+            local pGui = player:FindFirstChild("PlayerGui")
+            if pGui then
+                for _, v in pairs(pGui:GetDescendants()) do
+                    -- Mencari tombol UI TextButton yang bertuliskan "Yes" dan sedang tampil di layar
+                    if v:IsA("TextButton") and v.Text:lower() == "yes" and v.Visible then
+                        local isVisible = true
+                        local parent = v.Parent
+                        -- Verifikasi bahwa seluruh frame UI-nya tidak tersembunyi
+                        while parent and parent:IsA("GuiObject") do
+                            if not parent.Visible then isVisible = false break end
+                            parent = parent.Parent
+                        end
+                        
+                        if isVisible then
+                            pcall(function()
+                                -- Eksekusi klik GUI yang kompatibel dengan berbagai Executor
+                                if firesignal then
+                                    firesignal(v.MouseButton1Click)
+                                elseif getconnections then
+                                    for _, conn in pairs(getconnections(v.MouseButton1Click)) do
+                                        conn:Fire()
+                                    end
+                                end
+                            end)
+                            task.wait(0.5) -- Jeda setelah klik agar tidak spam berlebihan
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.5)
     end
 end)
 
@@ -107,12 +148,17 @@ local function StartAutoFuse()
         local hrp = char.HumanoidRootPart
         local activeMachineName = nil
         
-        -- Cek jika "All" dipilih atau mesin spesifik
+        -- Cek jika "All" dipilih atau mesin spesifik (DIPERBAIKI AGAR TIDAK STUCK)
         if _G.SelectedMachines["All"] then
             for _, name in pairs(machineList) do
-                if workspace:FindFirstChild(name, true) then
-                    activeMachineName = name
-                    break
+                local mObj = workspace:FindFirstChild(name, true)
+                if mObj then
+                    -- Pastikan mesin valid dan bisa diinteraksi (punya hitungan X/Y) agar tidak stuck
+                    local c, m = GetUniversalCount(mObj)
+                    if c ~= nil then
+                        activeMachineName = name
+                        break
+                    end
                 end
             end
         else
