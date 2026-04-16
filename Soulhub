@@ -9,7 +9,7 @@ _G.AutoFuse = false
 _G.SelectedUnitName = "Cupitron Consoletron"
 _G.SelectedScales = {} 
 _G.SelectedMachines = {} 
-_G.TweenSpeed = 500 
+_G.TweenSpeed = 150 
 _G.FlyHeight = 100 
 
 local lastNotifyUnit = 0
@@ -189,9 +189,9 @@ end
 -- UI SETUP
 -- ==========================================
 local MainTab = Window:CreateTab("Auto Fuse", 4483345998)
-MainTab:CreateDropdown({Name = "Pilih Unit", Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "Burgerini Bearnini", "Bandito Bulbito Traktorito", "All Units"}, CurrentOption = {"Cupitron Consoletron"}, Callback = function(o) _G.SelectedUnitName = o[1] end})
+MainTab:CreateDropdown({Name = "Pilih Unit", Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "All Units"}, CurrentOption = {"Cupitron Consoletron"}, Callback = function(o) _G.SelectedUnitName = o[1] end})
 MainTab:CreateDropdown({Name = "Pilih Scale (Multi)", Options = {"All", "Lil Baby", "Baby", "Mini", "Normal", "Big", "Colossal"}, MultipleOptions = true, Callback = function(o) _G.SelectedScales = {} for _, v in pairs(o) do _G.SelectedScales[v] = true end end})
 -- SpawnMachines dihapus dari opsi dropdown di bawah ini
 MainTab:CreateDropdown({Name = "Pilih Mesin", Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}, MultipleOptions = true, Callback = function(o) _G.SelectedMachines = {} for _, v in pairs(o) do _G.SelectedMachines[v] = true end end})
-MainTab:CreateInput({Name = "Fly Speed", PlaceholderText = "500", Callback = function(t) _G.TweenSpeed = tonumber(t) or 500 end})
+MainTab:CreateInput({Name = "Fly Speed", PlaceholderText = "150", Callback = function(t) _G.TweenSpeed = tonumber(t) or 150 end})
 MainTab:CreateToggle({Name = "Start Auto Fuse", CurrentValue = false, Callback = function(v) _G.AutoFuse = v if v then task.spawn(StartAutoFuse) end end})
