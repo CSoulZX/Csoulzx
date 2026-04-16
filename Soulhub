@@ -153,7 +153,6 @@ local function StartAutoFuse()
         if not activeMachineName then task.wait(1) continue end
 
         local machineObj = workspace:FindFirstChild(activeMachineName, true)
-        -- Logika khusus SpawnMachines sudah dihapus dari sini
         local targetPos = machineObj and (machineObj:IsA("BasePart") and machineObj.Position or machineObj:FindFirstChildWhichIsA("BasePart", true).Position)
 
         if not targetPos then task.wait(1) continue end
@@ -189,9 +188,13 @@ end
 -- UI SETUP
 -- ==========================================
 local MainTab = Window:CreateTab("Auto Fuse", 4483345998)
-MainTab:CreateDropdown({Name = "Pilih Unit", Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "All Units"}, CurrentOption = {"Cupitron Consoletron"}, Callback = function(o) _G.SelectedUnitName = o[1] end})
+MainTab:CreateDropdown({
+    Name = "Pilih Unit", 
+    Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "Burgerini", "Bulbito", "All Units"}, 
+    CurrentOption = {"Cupitron Consoletron"}, 
+    Callback = function(o) _G.SelectedUnitName = o[1] end
+})
 MainTab:CreateDropdown({Name = "Pilih Scale (Multi)", Options = {"All", "Lil Baby", "Baby", "Mini", "Normal", "Big", "Colossal"}, MultipleOptions = true, Callback = function(o) _G.SelectedScales = {} for _, v in pairs(o) do _G.SelectedScales[v] = true end end})
--- SpawnMachines dihapus dari opsi dropdown di bawah ini
 MainTab:CreateDropdown({Name = "Pilih Mesin", Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}, MultipleOptions = true, Callback = function(o) _G.SelectedMachines = {} for _, v in pairs(o) do _G.SelectedMachines[v] = true end end})
 MainTab:CreateInput({Name = "Fly Speed", PlaceholderText = "150", Callback = function(t) _G.TweenSpeed = tonumber(t) or 150 end})
 MainTab:CreateToggle({Name = "Start Auto Fuse", CurrentValue = false, Callback = function(v) _G.AutoFuse = v if v then task.spawn(StartAutoFuse) end end})
