@@ -14,6 +14,7 @@ _G.FlyHeight = 100
 
 local lastNotifyUnit = 0
 local lastNotifyMachine = 0
+-- Daftar mesin untuk mode "All"
 local machineList = {"Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce", "Drillforge"}
 
 local Window = Rayfield:CreateWindow({
@@ -102,6 +103,32 @@ local function IsScaleMatch(sAttr)
     return false
 end
 
+local function GetUniversalCount(m)
+    if not m then return nil end
+    for _, v in pairs(m:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            local t = (v.ActionText or "") .. (v.ObjectText or "")
+            local c, max = t:match("(%d+)/(%d+)")
+            if c then return tonumber(c), tonumber(max) end
+        end
+    end
+    return nil
+end
+
+-- Fungsi pencarian mesin yang diperkuat untuk deteksi DOOM
+local function FindMachine(name)
+    -- Cari semua objek dengan nama tersebut di Workspace
+    for _, v in pairs(workspace:GetDescendants()) do
+        if (v.Name == name or v.Name == name.."Machine" or v.Name == name.." Machine") and (v:IsA("Model") or v:IsA("BasePart") or v:IsA("Folder")) then
+            -- Pastikan objek ini memiliki ProximityPrompt yang valid (x/x)
+            if GetUniversalCount(v) then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
 local function SuperScanUnit(activeMachine)
     local char = game.Players.LocalPlayer.Character
     local backpack = game.Players.LocalPlayer:FindFirstChild("Backpack")
@@ -125,18 +152,6 @@ local function SuperScanUnit(activeMachine)
     return nil
 end
 
-local function GetUniversalCount(m)
-    if not m then return nil end
-    for _, v in pairs(m:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            local t = (v.ActionText or "") .. (v.ObjectText or "")
-            local c, max = t:match("(%d+)/(%d+)")
-            if c then return tonumber(c), tonumber(max) end
-        end
-    end
-    return nil
-end
-
 -- ==========================================
 -- MAIN AUTO FUSE LOOP
 -- ==========================================
@@ -149,8 +164,8 @@ local function StartAutoFuse()
         local activeMachineName = nil
         if _G.SelectedMachines["All"] then
             for _, name in pairs(machineList) do
-                local mObj = workspace:FindFirstChild(name, true)
-                if mObj and GetUniversalCount(mObj) then activeMachineName = name break end
+                local mObj = FindMachine(name)
+                if mObj then activeMachineName = name break end
             end
         else
             for name, sel in pairs(_G.SelectedMachines) do if sel then activeMachineName = name break end end
@@ -158,8 +173,9 @@ local function StartAutoFuse()
 
         if not activeMachineName then task.wait(1) continue end
 
-        local machineObj = workspace:FindFirstChild(activeMachineName, true)
-        local targetPos = machineObj and (machineObj:IsA("BasePart") and machineObj.Position or machineObj:FindFirstChildWhichIsA("BasePart", true).Position)
+        local machineObj = FindMachine(activeMachineName)
+        -- Mengambil posisi target (Prioritas GetPivot agar akurat untuk model DOOM)
+        local targetPos = machineObj and (machineObj:IsA("Model") and machineObj:GetPivot().Position or (machineObj:IsA("BasePart") and machineObj.Position or machineObj:FindFirstChildWhichIsA("BasePart", true).Position))
 
         if not targetPos then task.wait(1) continue end
 
@@ -175,7 +191,7 @@ local function StartAutoFuse()
             TweenService:Create(hrp, TweenInfo.new(0.8), {CFrame = CFrame.new(targetPos.X, targetPos.Y + 3, targetPos.Z)}):Play()
             task.wait(0.9)
             
-            -- UNEQUIP 1X SAJA SETELAH MENCAPAI TARGET (TWEEN SELESAI)
+            -- UNEQUIP 1X SAJA SETELAH MENCAPAI TARGET
             if char:FindFirstChildOfClass("Tool") then 
                 char.Humanoid:UnequipTools() 
                 task.wait(0.2)
