@@ -14,8 +14,7 @@ _G.FlyHeight = 100
 
 local lastNotifyUnit = 0
 local lastNotifyMachine = 0
--- SpawnMachines telah dihapus dari daftar ini
-local machineList = {"Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}
+local machineList = {"Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce", "Drillforge"}
 
 local Window = Rayfield:CreateWindow({
    Name = "SPEED HUB V4 | ULTIMATE AUTO YES",
@@ -37,7 +36,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- FEATURE: SUPER AUTO YES (FITUR YANG SUDAH BERHASIL)
+-- FEATURE: SUPER AUTO YES
 -- ==========================================
 task.spawn(function()
     while true do
@@ -103,14 +102,21 @@ local function IsScaleMatch(sAttr)
     return false
 end
 
-local function SuperScanUnit()
+local function SuperScanUnit(activeMachine)
     local char = game.Players.LocalPlayer.Character
     local backpack = game.Players.LocalPlayer:FindFirstChild("Backpack")
     local function IsValid(item)
         if item and item:IsA("Tool") then
             local bName = tostring(item:GetAttribute("BrainrotName") or ""):lower()
             local sAttr = tonumber(item:GetAttribute("Scale")) or 0
-            return (_G.SelectedUnitName == "All Units" or string.find(bName, _G.SelectedUnitName:lower())) and IsScaleMatch(sAttr)
+            
+            if not IsScaleMatch(sAttr) then return false end
+            
+            if activeMachine == "Drillforge" and _G.SelectedUnitName ~= "All Units" then
+                return not string.find(bName, _G.SelectedUnitName:lower())
+            else
+                return (_G.SelectedUnitName == "All Units" or string.find(bName, _G.SelectedUnitName:lower()))
+            end
         end
         return false
     end
@@ -168,11 +174,23 @@ local function StartAutoFuse()
             task.wait((distH/_G.TweenSpeed) + 0.2)
             TweenService:Create(hrp, TweenInfo.new(0.8), {CFrame = CFrame.new(targetPos.X, targetPos.Y + 3, targetPos.Z)}):Play()
             task.wait(0.9)
+            
+            -- UNEQUIP 1X SAJA SETELAH MENCAPAI TARGET (TWEEN SELESAI)
+            if char:FindFirstChildOfClass("Tool") then 
+                char.Humanoid:UnequipTools() 
+                task.wait(0.2)
+            end
         end
 
         if count == 0 then
-            local tool = SuperScanUnit()
-            if tool then tool.Parent = char task.wait(0.2) VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) task.wait(0.05) VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end
+            local tool = SuperScanUnit(activeMachineName)
+            if tool then 
+                tool.Parent = char 
+                task.wait(0.2) 
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) 
+                task.wait(0.05) 
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) 
+            end
         elseif count < (maxCount - 1) then
             if char:FindFirstChildOfClass("Tool") then char.Humanoid:UnequipTools() end
             task.wait(0.1) VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) task.wait(0.05) VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) task.wait(3) 
@@ -188,13 +206,8 @@ end
 -- UI SETUP
 -- ==========================================
 local MainTab = Window:CreateTab("Auto Fuse", 4483345998)
-MainTab:CreateDropdown({
-    Name = "Pilih Unit", 
-    Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "Burgerini", "Bulbito", "All Units"}, 
-    CurrentOption = {"Cupitron Consoletron"}, 
-    Callback = function(o) _G.SelectedUnitName = o[1] end
-})
+MainTab:CreateDropdown({Name = "Pilih Unit", Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "Quartzino", "Antimateria Quartzello Fossino", "All Units"}, CurrentOption = {"Cupitron Consoletron"}, Callback = function(o) _G.SelectedUnitName = o[1] end})
 MainTab:CreateDropdown({Name = "Pilih Scale (Multi)", Options = {"All", "Lil Baby", "Baby", "Mini", "Normal", "Big", "Colossal"}, MultipleOptions = true, Callback = function(o) _G.SelectedScales = {} for _, v in pairs(o) do _G.SelectedScales[v] = true end end})
-MainTab:CreateDropdown({Name = "Pilih Mesin", Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce"}, MultipleOptions = true, Callback = function(o) _G.SelectedMachines = {} for _, v in pairs(o) do _G.SelectedMachines[v] = true end end})
+MainTab:CreateDropdown({Name = "Pilih Mesin", Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce", "Drillforge", "SpawnMachines"}, MultipleOptions = true, Callback = function(o) _G.SelectedMachines = {} for _, v in pairs(o) do _G.SelectedMachines[v] = true end end})
 MainTab:CreateInput({Name = "Fly Speed", PlaceholderText = "150", Callback = function(t) _G.TweenSpeed = tonumber(t) or 150 end})
 MainTab:CreateToggle({Name = "Start Auto Fuse", CurrentValue = false, Callback = function(v) _G.AutoFuse = v if v then task.spawn(StartAutoFuse) end end})
