@@ -91,15 +91,16 @@ end)
 -- ==========================================
 -- LOGIKA PENDUKUNG
 -- ==========================================
+-- PERUBAHAN DI SINI: Angka scale disesuaikan dengan permintaan baru
 local function IsScaleMatch(sAttr)
     if _G.SelectedScales["All"] then return true end
     local s = _G.SelectedScales
-    if s["Lil Baby"] and (sAttr >= 0.1 and sAttr <= 0.24) then return true end
-    if s["Baby"] and (sAttr >= 0.25 and sAttr <= 0.34) then return true end
-    if s["Mini"] and (sAttr >= 0.35 and sAttr <= 0.74) then return true end
-    if s["Normal"] and (sAttr >= 0.75 and sAttr <= 1.2) then return true end
-    if s["Big"] and (sAttr >= 1.3 and sAttr <= 1.77) then return true end
-    if s["Colossal"] and (sAttr >= 1.78 and sAttr <= 3.0) then return true end
+    if s["Lil Baby"] and (sAttr >= 0.1 and sAttr <= 0.35) then return true end
+    if s["Baby"] and (sAttr >= 0.34 and sAttr <= 0.65) then return true end
+    if s["Mini"] and (sAttr >= 0.66 and sAttr <= 0.85) then return true end
+    if s["Normal"] and (sAttr >= 0.86 and sAttr <= 1.2) then return true end
+    if s["Big"] and (sAttr >= 1.2 and sAttr <= 1.95) then return true end
+    if s["Colossal"] and (sAttr >= 1.96 and sAttr <= 3.0) then return true end
     return false
 end
 
@@ -115,12 +116,9 @@ local function GetUniversalCount(m)
     return nil
 end
 
--- Fungsi pencarian mesin yang diperkuat untuk deteksi DOOM
 local function FindMachine(name)
-    -- Cari semua objek dengan nama tersebut di Workspace
     for _, v in pairs(workspace:GetDescendants()) do
         if (v.Name == name or v.Name == name.."Machine" or v.Name == name.." Machine") and (v:IsA("Model") or v:IsA("BasePart") or v:IsA("Folder")) then
-            -- Pastikan objek ini memiliki ProximityPrompt yang valid (x/x)
             if GetUniversalCount(v) then
                 return v
             end
@@ -174,7 +172,6 @@ local function StartAutoFuse()
         if not activeMachineName then task.wait(1) continue end
 
         local machineObj = FindMachine(activeMachineName)
-        -- Mengambil posisi target (Prioritas GetPivot agar akurat untuk model DOOM)
         local targetPos = machineObj and (machineObj:IsA("Model") and machineObj:GetPivot().Position or (machineObj:IsA("BasePart") and machineObj.Position or machineObj:FindFirstChildWhichIsA("BasePart", true).Position))
 
         if not targetPos then task.wait(1) continue end
@@ -191,7 +188,6 @@ local function StartAutoFuse()
             TweenService:Create(hrp, TweenInfo.new(0.8), {CFrame = CFrame.new(targetPos.X, targetPos.Y + 3, targetPos.Z)}):Play()
             task.wait(0.9)
             
-            -- UNEQUIP 1X SAJA SETELAH MENCAPAI TARGET
             if char:FindFirstChildOfClass("Tool") then 
                 char.Humanoid:UnequipTools() 
                 task.wait(0.2)
