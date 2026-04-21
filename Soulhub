@@ -14,7 +14,7 @@ _G.FlyHeight = 100
 
 local lastNotifyUnit = 0
 local lastNotifyMachine = 0
--- Daftar mesin untuk mode "All"
+local arrivalTime = 0 -- Untuk tracking waktu sampai di mesin
 local machineList = {"Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce", "Drillforge"}
 
 local Window = Rayfield:CreateWindow({
@@ -91,7 +91,6 @@ end)
 -- ==========================================
 -- LOGIKA PENDUKUNG
 -- ==========================================
--- PERUBAHAN DI SINI: Angka scale disesuaikan dengan permintaan baru
 local function IsScaleMatch(sAttr)
     if _G.SelectedScales["All"] then return true end
     local s = _G.SelectedScales
@@ -156,8 +155,9 @@ end
 local function StartAutoFuse()
     while _G.AutoFuse do
         local char = game.Players.LocalPlayer.Character
+        local humanoid = char and char:FindFirstChild("Humanoid")
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then task.wait(1) continue end
+        if not hrp or not humanoid or humanoid.Health <= 0 then task.wait(1) continue end
 
         local activeMachineName = nil
         if _G.SelectedMachines["All"] then
@@ -180,7 +180,10 @@ local function StartAutoFuse()
         if count == nil then task.wait(0.1) continue end
 
         local distH = Vector2.new(hrp.Position.X - targetPos.X, hrp.Position.Z - targetPos.Z).Magnitude
+        
+        -- LOGIKA MOVE & ARRIVAL TRACKING
         if distH > 5 then
+            arrivalTime = 0 -- Reset timer jika masih dalam perjalanan
             TweenService:Create(hrp, TweenInfo.new(1), {CFrame = CFrame.new(hrp.Position.X, targetPos.Y + _G.FlyHeight, hrp.Position.Z)}):Play()
             task.wait(1.1)
             TweenService:Create(hrp, TweenInfo.new(distH/_G.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos.X, targetPos.Y + _G.FlyHeight, targetPos.Z)}):Play()
@@ -192,11 +195,23 @@ local function StartAutoFuse()
                 char.Humanoid:UnequipTools() 
                 task.wait(0.2)
             end
+        else
+            -- Jika sudah di mesin, mulai hitung waktu
+            if arrivalTime == 0 then arrivalTime = tick() end
+        end
+
+        -- LOGIKA AUTO RESET (Jika 5 detik tidak menemukan unit)
+        local tool = SuperScanUnit(activeMachineName)
+        if arrivalTime ~= 0 and (tick() - arrivalTime) > 5 and not tool then
+            humanoid.Health = 0 -- Restart Karakter
+            arrivalTime = 0
+            task.wait(2)
+            continue
         end
 
         if count == 0 then
-            local tool = SuperScanUnit(activeMachineName)
             if tool then 
+                arrivalTime = 0 -- Reset timer jika tool ditemukan
                 tool.Parent = char 
                 task.wait(0.2) 
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) 
