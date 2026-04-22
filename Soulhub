@@ -1,7 +1,3 @@
--- Tunggu sampai game benar-benar selesai dimuat sebelum menjalankan script
-if not game:IsLoaded() then game.Loaded:Wait() end
-task.wait(1)
-
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local TweenService = game:GetService("TweenService")
@@ -18,7 +14,7 @@ _G.FlyHeight = 100
 
 local lastNotifyUnit = 0
 local lastNotifyMachine = 0
-local arrivalTime = 0 
+local arrivalTime = 0 -- Untuk tracking waktu sampai di mesin
 local machineList = {"Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce", "Drillforge"}
 
 local Window = Rayfield:CreateWindow({
@@ -185,8 +181,9 @@ local function StartAutoFuse()
 
         local distH = Vector2.new(hrp.Position.X - targetPos.X, hrp.Position.Z - targetPos.Z).Magnitude
         
+        -- LOGIKA MOVE & ARRIVAL TRACKING
         if distH > 5 then
-            arrivalTime = 0 
+            arrivalTime = 0 -- Reset timer jika masih dalam perjalanan
             TweenService:Create(hrp, TweenInfo.new(1), {CFrame = CFrame.new(hrp.Position.X, targetPos.Y + _G.FlyHeight, hrp.Position.Z)}):Play()
             task.wait(1.1)
             TweenService:Create(hrp, TweenInfo.new(distH/_G.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos.X, targetPos.Y + _G.FlyHeight, targetPos.Z)}):Play()
@@ -199,12 +196,14 @@ local function StartAutoFuse()
                 task.wait(0.2)
             end
         else
+            -- Jika sudah di mesin, mulai hitung waktu
             if arrivalTime == 0 then arrivalTime = tick() end
         end
 
+        -- LOGIKA AUTO RESET (Jika 5 detik tidak menemukan unit)
         local tool = SuperScanUnit(activeMachineName)
         if arrivalTime ~= 0 and (tick() - arrivalTime) > 5 and not tool then
-            humanoid.Health = 0 
+            humanoid.Health = 0 -- Restart Karakter
             arrivalTime = 0
             task.wait(2)
             continue
@@ -212,7 +211,7 @@ local function StartAutoFuse()
 
         if count == 0 then
             if tool then 
-                arrivalTime = 0 
+                arrivalTime = 0 -- Reset timer jika tool ditemukan
                 tool.Parent = char 
                 task.wait(0.2) 
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) 
@@ -236,6 +235,6 @@ end
 local MainTab = Window:CreateTab("Auto Fuse", 4483345998)
 MainTab:CreateDropdown({Name = "Pilih Unit", Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "Quartzino", "Antimateria Quartzello Fossino", "All Units"}, CurrentOption = {"Cupitron Consoletron"}, Callback = function(o) _G.SelectedUnitName = o[1] end})
 MainTab:CreateDropdown({Name = "Pilih Scale (Multi)", Options = {"All", "Lil Baby", "Baby", "Mini", "Normal", "Big", "Colossal"}, MultipleOptions = true, Callback = function(o) _G.SelectedScales = {} for _, v in pairs(o) do _G.SelectedScales[v] = true end end})
-MainTab:CreateDropdown({Name = "Pilih Mesin", Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce", "Drillforge"}, MultipleOptions = true, Callback = function(o) _G.SelectedMachines = {} for _, v in pairs(o) do _G.SelectedMachines[v] = true end end})
+MainTab:CreateDropdown({Name = "Pilih Mesin", Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce", "Drillforge", "SpawnMachines"}, MultipleOptions = true, Callback = function(o) _G.SelectedMachines = {} for _, v in pairs(o) do _G.SelectedMachines[v] = true end end})
 MainTab:CreateInput({Name = "Fly Speed", PlaceholderText = "150", Callback = function(t) _G.TweenSpeed = tonumber(t) or 150 end})
 MainTab:CreateToggle({Name = "Start Auto Fuse", CurrentValue = false, Callback = function(v) _G.AutoFuse = v if v then task.spawn(StartAutoFuse) end end})
