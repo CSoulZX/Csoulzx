@@ -233,7 +233,7 @@ end
 -- UI SETUP
 -- ==========================================
 local MainTab = Window:CreateTab("Auto Fuse", 4483345998)
-MainTab:CreateDropdown({Name = "Pilih Unit", Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "Quartzino", "Antimateria Quartzello Fossino", "All Units"}, CurrentOption = {"Cupitron Consoletron"}, Callback = function(o) _G.SelectedUnitName = o[1] end})
+MainTab:CreateDropdown({Name = "Pilih Unit", Options = {"Cupitron Consoletron", "Mastodontico Giostraccio", "Quartzino", "Antimateria Quartzello Fossino", "Tartino Tikillo", "All Units"}, CurrentOption = {"Cupitron Consoletron"}, Callback = function(o) _G.SelectedUnitName = o[1] end})
 MainTab:CreateDropdown({Name = "Pilih Scale (Multi)", Options = {"All", "Lil Baby", "Baby", "Mini", "Normal", "Big", "Colossal"}, MultipleOptions = true, Callback = function(o) _G.SelectedScales = {} for _, v in pairs(o) do _G.SelectedScales[v] = true end end})
 MainTab:CreateDropdown({Name = "Pilih Mesin", Options = {"All", "Doom", "ATM", "Blackhole", "Arcade", "PhantomSummoner", "LuckyClover", "Valentines", "FireAndIce", "Drillforge", "SpawnMachines"}, MultipleOptions = true, Callback = function(o) _G.SelectedMachines = {} for _, v in pairs(o) do _G.SelectedMachines[v] = true end end})
 MainTab:CreateInput({Name = "Fly Speed", PlaceholderText = "150", Callback = function(t) _G.TweenSpeed = tonumber(t) or 150 end})
